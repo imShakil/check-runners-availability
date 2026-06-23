@@ -90,7 +90,7 @@ jobs:
           node -e "const code = require('fs').readFileSync('dist/index.js','utf8'); if (!code.includes('module.exports')) { console.error('dist/index.js missing module.exports'); process.exit(1); }"
           echo "dist/index.js smoke test passed."
 
-      - name: Commit bumped files back to the tag branch
+      - name: Commit bumped files back to main
         if: steps.version.outputs.dry_run == 'false'
         shell: bash
         run: |
@@ -99,17 +99,41 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
           BRANCH="${GITHUB_REF#refs/tags/}"
-          # Tags point at commits, so a normal push won't update the branch.
-          # Use the tag's ref directly to push the rebuilt dist/ + package.json.
           git add package.json package-lock.json dist/
           if git diff --cached --quiet; then
             echo "No changes to commit — dist/ already matches the tag."
+            # Leave new_sha empty so the next step knows not to move the tag.
+            echo "new_sha=" >> "$GITHUB_OUTPUT"
             exit 0
           fi
           git commit -m "chore(release): rebuild dist/ for $BRANCH"
-          # Push back to the tag (this also updates the ref so the Release
-          # artifact below matches the committed source).
-          git push origin "HEAD:refs/tags/$BRANCH"
+          # Push the rebuilt source back to main so the source-of-truth
+          # branch stays in sync with the released version.
+          git push origin "HEAD:main"
+          NEW_SHA="$(git rev-parse HEAD)"
+          echo "new_sha=$NEW_SHA" >> "$GITHUB_OUTPUT"
+        id: commit_back
+
+      - name: Move tag to the rebuilt commit
+        if: steps.version.outputs.dry_run == 'false'
+        shell: bash
+        run: |
+          set -euo pipefail
+          BRANCH="${GITHUB_REF#refs/tags/}"
+          NEW_SHA="${{ steps.commit_back.outputs.new_sha }}"
+
+          # If no new commit was created, the original tag is still correct.
+          if [[ -z "$NEW_SHA" ]]; then
+            echo "No new commit to move the tag to. Leaving $BRANCH as-is."
+            exit 0
+          fi
+
+          # Force-move the tag to the rebuilt commit. --force-with-lease
+          # checks that no one else has updated the remote tag before we
+          # overwrite it (safer than plain --force).
+          git tag -d "$BRANCH"
+          git tag "$BRANCH" "$NEW_SHA"
+          git push origin "refs/tags/$BRANCH" --force-with-lease
 
       - name: Create GitHub Release
         if: steps.version.outputs.dry_run == 'false'
@@ -117,5 +141,6 @@ jobs:
         with:
           name: ${{ github.ref_name }}
           generate_release_notes: true
+          fail_on_unmatched_files: true
           files: |
             dist/index.js
