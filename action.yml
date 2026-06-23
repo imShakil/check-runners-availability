@@ -51,7 +51,7 @@ outputs:
     description: 'JSON array of matching runners with id, name, status, labels, and busy flag.'
 
 runs:
-  using: 'node20'
+  using: 'node24'
   main: 'dist/index.js'
 
 branding:
