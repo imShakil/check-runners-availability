@@ -1,0 +1,59 @@
+name: 'Check Self Hosted Runner Availability'
+description: 'A github action to check if self hosted runners online or offline to cancel workflow immediately.'
+author: 'imShakil'
+
+inputs:
+  token:
+    description: 'GitHub token with permission to list self-hosted runners. Defaults to the workflow token (GITHUB_TOKEN) when scope is repo. For org scope, provide a PAT or app token with org admin:manage_runners.'
+    required: false
+    default: ${{ github.token }}
+  scope:
+    description: 'Where to look for runners. `repo` checks runners registered on the current repository, `org` checks all runners in the organization.'
+    required: false
+    default: 'repo'
+  org:
+    description: 'Organization name. Required when scope=org. Defaults to the owner of the current repository when it is an org.'
+    required: false
+    default: ''
+  owner:
+    description: 'Repository owner (user or org). Only used when scope=repo. Defaults to the owner of the current repo (${{ github.repository_owner }}).'
+    required: false
+    default: ''
+  repo:
+    description: 'Repository name. Only used when scope=repo. Defaults to the current repo (${{ github.event.repository.name }}). Override this when checking runners on a different repository than the one running the workflow.'
+    required: false
+    default: ''
+  labels:
+    description: 'Comma-separated list of labels. Only runners that have ALL of these labels will be considered. Leave empty to ignore labels.'
+    required: false
+    default: ''
+  names:
+    description: 'Comma-separated list of runner names. Only runners whose name appears in this list will be considered. Leave empty to ignore names.'
+    required: false
+    default: ''
+  fail-on-offline:
+    description: 'When `true`, the action throws (and fails the workflow) if no matching runner is online. When `false`, it always exits 0 and only exposes outputs.'
+    required: false
+    default: 'true'
+  github-server-url:
+    description: 'GitHub server URL, e.g. https://github.example.com for GHES. Defaults to ${{ github.server_url }}.'
+    required: false
+    default: ${{ github.server_url }}
+
+outputs:
+  available:
+    description: '`true` if at least one matching runner is online, `false` otherwise.'
+  online-count:
+    description: 'Number of matching runners that are currently online.'
+  total-count:
+    description: 'Number of matching runners total (online + offline).'
+  runners:
+    description: 'JSON array of matching runners with id, name, status, labels, and busy flag.'
+
+runs:
+  using: 'node20'
+  main: 'dist/index.js'
+
+branding:
+  icon: 'cpu'
+  color: 'orange'

@@ -10,7 +10,8 @@ __pycache__/
 .Python
 build/
 develop-eggs/
-dist/
+# Note: `dist/` is intentionally NOT ignored — this repo is a GitHub Action
+# and `dist/index.js` is the bundled entrypoint referenced by `action.yml`.
 downloads/
 eggs/
 .eggs/
@@ -216,3 +217,5 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+.puku/
+**/node_modules
