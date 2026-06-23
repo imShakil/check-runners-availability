@@ -1,6 +1,6 @@
 {
   "name": "check-runners-availability",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "GitHub Action that checks if self-hosted runners are online and cancels the workflow if none are available.",
   "main": "dist/index.js",
   "scripts": {
