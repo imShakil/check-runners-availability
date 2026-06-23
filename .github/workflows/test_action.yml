@@ -2,13 +2,6 @@ name: 'Test Runners Availability'
 
 on:
   workflow_dispatch:          # Allow manual trigger
-  push:
-    branches: [main]
-    paths:
-      - 'src/**'
-      - 'action.yml'
-      - 'dist/**'
-      - '.github/workflows/test_action.yml'
 
 permissions:
   contents: read
