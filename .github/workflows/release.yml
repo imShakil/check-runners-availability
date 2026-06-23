@@ -90,27 +90,6 @@ jobs:
           node -e "const code = require('fs').readFileSync('dist/index.js','utf8'); if (!code.includes('module.exports')) { console.error('dist/index.js missing module.exports'); process.exit(1); }"
           echo "dist/index.js smoke test passed."
 
-      - name: Commit rebuilt dist/ back to main
-        if: steps.version.outputs.dry_run == 'false'
-        shell: bash
-        run: |
-          set -euo pipefail
-          git config user.name  "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-
-          TAG="${GITHUB_REF#refs/tags/}"
-          git add package.json package-lock.json dist/
-          if git diff --cached --quiet; then
-            echo "No changes to commit — dist/ already matches the tag."
-            exit 0
-          fi
-          git commit -m "chore(release): rebuild dist/ for $TAG"
-          # Push the rebuilt bundle back to main so the source-of-truth
-          # branch stays in sync with the release. The tag itself is left
-          # alone — it points at the commit the user tagged, which is what
-          # `uses: owner/repo@<tag>` will resolve to.
-          git push origin "HEAD:main"
-
       - name: Create GitHub Release
         if: steps.version.outputs.dry_run == 'false'
         uses: softprops/action-gh-release@v2
