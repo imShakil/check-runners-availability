@@ -122,9 +122,9 @@ async function run() {
       const busy = r.busy ? ', busy' : '';
       core.info(`  - ${r.name} [${r.status}${busy}] labels=${r.labels.join(',')}`);
     }
-    core.info(`Result: available=${available} online=${online.length} total=${shaped.length}`);
 
     const available = online.length > 0;
+    core.info(`Result: available=${available} online=${online.length} total=${shaped.length}`);
     core.setOutput('available', String(available));
     core.setOutput('online-count', String(online.length));
     core.setOutput('total-count', String(shaped.length));

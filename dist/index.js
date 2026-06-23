@@ -32006,9 +32006,9 @@ async function run() {
       const busy = r.busy ? ', busy' : '';
       _actions_core__WEBPACK_IMPORTED_MODULE_0__.info(`  - ${r.name} [${r.status}${busy}] labels=${r.labels.join(',')}`);
     }
-    _actions_core__WEBPACK_IMPORTED_MODULE_0__.info(`Result: available=${available} online=${online.length} total=${shaped.length}`);
 
     const available = online.length > 0;
+    _actions_core__WEBPACK_IMPORTED_MODULE_0__.info(`Result: available=${available} online=${online.length} total=${shaped.length}`);
     _actions_core__WEBPACK_IMPORTED_MODULE_0__.setOutput('available', String(available));
     _actions_core__WEBPACK_IMPORTED_MODULE_0__.setOutput('online-count', String(online.length));
     _actions_core__WEBPACK_IMPORTED_MODULE_0__.setOutput('total-count', String(shaped.length));
