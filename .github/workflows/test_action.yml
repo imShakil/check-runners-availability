@@ -1,0 +1,93 @@
+name: 'Test Runners Availability'
+
+on:
+  workflow_dispatch:          # Allow manual trigger
+  push:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'action.yml'
+      - 'dist/**'
+      - '.github/workflows/test_action.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  check_runner_repo:
+    name: Pre Run Check (repo scope)
+    runs-on: ubuntu-latest
+    outputs:
+      online: ${{ steps.runner-check.outputs.available }}
+      total: ${{ steps.runner-check.outputs.total-count }}
+      online-count: ${{ steps.runner-check.outputs.online-count }}
+    steps:
+      - name: Probe runners endpoint
+        env:
+          GH_TOKEN: ${{ secrets.RUNNER_CHECK_PAT }}
+        run: |
+          set -euo pipefail
+          resp=$(mktemp)
+          code=$(curl -sS -o "$resp" -w "%{http_code}" \
+            -H "Authorization: token $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            "${{ github.api_url }}/repos/imShakil/playlist-sourcing/actions/runners")
+          echo "HTTP $code"
+          head -c 1500 "$resp"
+          echo
+          if [ "$code" != "200" ]; then
+            echo "::error::Probe failed with HTTP $code"
+            exit 1
+          fi
+
+      - name: Check Self-Hosted Runner Availability
+        id: runner-check
+        uses: imShakil/check-runners-availability@v1.0.2
+        with:
+          token: ${{ secrets.RUNNER_CHECK_PAT }}
+          scope: repo
+          fail-on-offline: false
+
+      - name: Report
+        if: always()
+        run: |
+          echo "available=${{ steps.runner-check.outputs.available }}"
+          echo "online-count=${{ steps.runner-check.outputs.online-count }}"
+          echo "total-count=${{ steps.runner-check.outputs.total-count }}"
+          echo "runners=${{ steps.runner-check.outputs.runners }}"
+
+  check_runner_org:
+    name: Pre Run Check (org scope)
+    runs-on: ubuntu-latest
+    continue-on-error: true   # PAT may not have org scope; just inform
+    steps:
+      - name: Check Self-Hosted Runner Availability (org)
+        id: runner-check-org
+        uses: imShakil/check-runners-availability@v1.0.2
+        with:
+          token: ${{ secrets.RUNNER_CHECK_PAT }}
+          scope: org
+          org: imShakil
+          fail-on-offline: false
+
+      - name: Report (org)
+        if: always()
+        run: |
+          echo "available=${{ steps.runner-check-org.outputs.available }}"
+          echo "online-count=${{ steps.runner-check-org.outputs.online-count }}"
+          echo "total-count=${{ steps.runner-check-org.outputs.total-count }}"
+
+  update_tokens:
+    name: Update Tokens
+    needs: check_runner_repo
+    if: needs.check_runner_repo.outputs.online == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v6
+      - name: Show working
+        run: |
+          echo "Online runner(s) detected — proceeding."
+          echo "online-count=${{ needs.check_runner_repo.outputs.online-count }}"

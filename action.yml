@@ -35,10 +35,6 @@ inputs:
     description: 'When `true`, the action throws (and fails the workflow) if no matching runner is online. When `false`, it always exits 0 and only exposes outputs.'
     required: false
     default: 'true'
-  github-server-url:
-    description: 'GitHub server URL, e.g. https://github.example.com for GHES. Leave empty to use the GITHUB_SERVER_URL exposed to the workflow (falls back to https://api.github.com).'
-    required: false
-    default: ''
 
 outputs:
   available:

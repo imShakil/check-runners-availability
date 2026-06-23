@@ -72,7 +72,7 @@ async function run() {
     const labels = parseList(core.getInput('labels'));
     const names = parseList(core.getInput('names'));
     const failOnOffline = (core.getInput('fail-on-offline') || 'true').toLowerCase() !== 'false';
-    const serverUrl = core.getInput('github-server-url') || process.env.GITHUB_SERVER_URL || 'https://api.github.com';
+    const serverUrl = 'https://api.github.com';
 
     if (scope !== 'repo' && scope !== 'org') {
       throw new Error(`Invalid scope: "${scope}". Must be "repo" or "org".`);
@@ -85,12 +85,17 @@ async function run() {
     const repo = repoInput || ctxRepo.repo;
     const octokit = github.getOctokit(token, { baseUrl: serverUrl });
 
-    core.info(`Checking self-hosted runner availability (scope=${scope})`);
+    core.info(`Checking self-hosted runner availability`);
+    core.info(`  api:          ${serverUrl}`);
+    core.info(`  scope:        ${scope}`);
     if (scope === 'repo') {
-      core.info(`  target repo: ${owner}/${repo}`);
+      core.info(`  target repo:  ${owner}/${repo}`);
+    } else {
+      core.info(`  target org:   ${resolveOrg(orgInput)}`);
     }
     if (labels.length) core.info(`  labels filter: ${labels.join(', ')}`);
     if (names.length) core.info(`  names filter:  ${names.join(', ')}`);
+    core.info(`  fail-on-offline: ${failOnOffline}`);
 
     // Pull every page until GitHub stops sending `Link: rel="next"`.
     const listParams =
@@ -114,8 +119,10 @@ async function run() {
 
     core.info(`Found ${shaped.length} matching runner(s); ${online.length} online.`);
     for (const r of shaped) {
-      core.info(`  - ${r.name} [${r.status}${r.busy ? ', busy' : ''}] labels=${r.labels.join(',')}`);
+      const busy = r.busy ? ', busy' : '';
+      core.info(`  - ${r.name} [${r.status}${busy}] labels=${r.labels.join(',')}`);
     }
+    core.info(`Result: available=${available} online=${online.length} total=${shaped.length}`);
 
     const available = online.length > 0;
     core.setOutput('available', String(available));
@@ -124,9 +131,13 @@ async function run() {
     core.setOutput('runners', JSON.stringify(shaped));
 
     if (!available) {
+      const filterDesc =
+        `scope=${scope}` +
+        (labels.length ? ` labels=[${labels.join(',')}]` : '') +
+        (names.length ? ` names=[${names.join(',')}]` : '');
       const msg = failOnOffline
-        ? `No online self-hosted runner matched (scope=${scope}, labels=[${labels.join(',')}], names=[${names.join(',')}]). Failing workflow.`
-        : `No online self-hosted runner matched. Setting available=false and continuing (fail-on-offline=false).`;
+        ? `No online self-hosted runner matched (${filterDesc}). Failing workflow.`
+        : `No online self-hosted runner matched (${filterDesc}). Setting available=false and continuing (fail-on-offline=false).`;
       core.warning(msg);
       if (failOnOffline) {
         // Throwing makes the step red and skips dependent jobs by default —

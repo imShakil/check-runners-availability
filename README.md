@@ -26,7 +26,6 @@ make progress.
 | `labels` | no | _(none)_ | Comma-separated labels. Only runners with **all** of these labels are considered. |
 | `names` | no | _(none)_ | Comma-separated runner names to whitelist. |
 | `fail-on-offline` | no | `true` | When `false`, the action always exits 0 and only sets outputs. |
-| `github-server-url` | no | `${{ github.server_url }}` | API base URL (override for GitHub Enterprise). |
 
 ## Outputs
 

@@ -31956,7 +31956,7 @@ async function run() {
     const labels = parseList(_actions_core__WEBPACK_IMPORTED_MODULE_0__.getInput('labels'));
     const names = parseList(_actions_core__WEBPACK_IMPORTED_MODULE_0__.getInput('names'));
     const failOnOffline = (_actions_core__WEBPACK_IMPORTED_MODULE_0__.getInput('fail-on-offline') || 'true').toLowerCase() !== 'false';
-    const serverUrl = _actions_core__WEBPACK_IMPORTED_MODULE_0__.getInput('github-server-url') || process.env.GITHUB_SERVER_URL || 'https://api.github.com';
+    const serverUrl = 'https://api.github.com';
 
     if (scope !== 'repo' && scope !== 'org') {
       throw new Error(`Invalid scope: "${scope}". Must be "repo" or "org".`);
@@ -31969,12 +31969,17 @@ async function run() {
     const repo = repoInput || ctxRepo.repo;
     const octokit = _actions_github__WEBPACK_IMPORTED_MODULE_1__.getOctokit(token, { baseUrl: serverUrl });
 
-    _actions_core__WEBPACK_IMPORTED_MODULE_0__.info(`Checking self-hosted runner availability (scope=${scope})`);
+    _actions_core__WEBPACK_IMPORTED_MODULE_0__.info(`Checking self-hosted runner availability`);
+    _actions_core__WEBPACK_IMPORTED_MODULE_0__.info(`  api:          ${serverUrl}`);
+    _actions_core__WEBPACK_IMPORTED_MODULE_0__.info(`  scope:        ${scope}`);
     if (scope === 'repo') {
-      _actions_core__WEBPACK_IMPORTED_MODULE_0__.info(`  target repo: ${owner}/${repo}`);
+      _actions_core__WEBPACK_IMPORTED_MODULE_0__.info(`  target repo:  ${owner}/${repo}`);
+    } else {
+      _actions_core__WEBPACK_IMPORTED_MODULE_0__.info(`  target org:   ${resolveOrg(orgInput)}`);
     }
     if (labels.length) _actions_core__WEBPACK_IMPORTED_MODULE_0__.info(`  labels filter: ${labels.join(', ')}`);
     if (names.length) _actions_core__WEBPACK_IMPORTED_MODULE_0__.info(`  names filter:  ${names.join(', ')}`);
+    _actions_core__WEBPACK_IMPORTED_MODULE_0__.info(`  fail-on-offline: ${failOnOffline}`);
 
     // Pull every page until GitHub stops sending `Link: rel="next"`.
     const listParams =
@@ -31998,8 +32003,10 @@ async function run() {
 
     _actions_core__WEBPACK_IMPORTED_MODULE_0__.info(`Found ${shaped.length} matching runner(s); ${online.length} online.`);
     for (const r of shaped) {
-      _actions_core__WEBPACK_IMPORTED_MODULE_0__.info(`  - ${r.name} [${r.status}${r.busy ? ', busy' : ''}] labels=${r.labels.join(',')}`);
+      const busy = r.busy ? ', busy' : '';
+      _actions_core__WEBPACK_IMPORTED_MODULE_0__.info(`  - ${r.name} [${r.status}${busy}] labels=${r.labels.join(',')}`);
     }
+    _actions_core__WEBPACK_IMPORTED_MODULE_0__.info(`Result: available=${available} online=${online.length} total=${shaped.length}`);
 
     const available = online.length > 0;
     _actions_core__WEBPACK_IMPORTED_MODULE_0__.setOutput('available', String(available));
@@ -32008,9 +32015,13 @@ async function run() {
     _actions_core__WEBPACK_IMPORTED_MODULE_0__.setOutput('runners', JSON.stringify(shaped));
 
     if (!available) {
+      const filterDesc =
+        `scope=${scope}` +
+        (labels.length ? ` labels=[${labels.join(',')}]` : '') +
+        (names.length ? ` names=[${names.join(',')}]` : '');
       const msg = failOnOffline
-        ? `No online self-hosted runner matched (scope=${scope}, labels=[${labels.join(',')}], names=[${names.join(',')}]). Failing workflow.`
-        : `No online self-hosted runner matched. Setting available=false and continuing (fail-on-offline=false).`;
+        ? `No online self-hosted runner matched (${filterDesc}). Failing workflow.`
+        : `No online self-hosted runner matched (${filterDesc}). Setting available=false and continuing (fail-on-offline=false).`;
       _actions_core__WEBPACK_IMPORTED_MODULE_0__.warning(msg);
       if (failOnOffline) {
         // Throwing makes the step red and skips dependent jobs by default —
@@ -32024,6 +32035,7 @@ async function run() {
 }
 
 run();
+
 })();
 
 module.exports = __webpack_exports__;
